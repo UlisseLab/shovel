@@ -1,0 +1,16 @@
+# Copyright (C) 2025  A. Iooss
+# SPDX-License-Identifier: CC0-1.0
+
+[package]
+name = "suricata-filedata-sqlite-output"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+name = "filedata_sqlite_output"
+
+[dependencies]
+env_logger = { version = "0.11.5", default-features = false }
+log = "0.4.22"
+rusqlite = { version = "0.37.0", features = ["bundled"] }

@@ -33,11 +33,10 @@ making opinionated choices for the frontend. This has a few nice implications:
 Moreover, Shovel is batteries-included with some Suricata alert rules.
 
 ```
-        ┌────────────────────────┐
-device  │ Suricata with:         │   eve.db    ┌───────────────┐
-or pcap │  - Eve SQLite plugin   ├────────────►│               │
-───────►│  - TCP payloads plugin │ payload.db  │ Python webapp │
-        │  - UDP payloads plugin ├────────────►│               │
+device  ┌────────────────────────┐   eve.db    ┌───────────────┐
+or pcap │ Suricata with:         ├────────────►│               │
+───────►│  - Eve SQLite plugin   │ payload.db  │ Python webapp │
+        │  - Payloads plugins    ├────────────►│               │
         └────────────────────────┘             └────▲──────────┘
                                               .env  │
                                               ──────┘

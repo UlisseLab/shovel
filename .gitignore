@@ -7,7 +7,7 @@ suricata/output/*.log
 suricata/output/*.db
 suricata/output/*.db-shm
 suricata/output/*.db-wal
-suricata/suricata-eve-sqlite-output/target
+suricata/target
 .env
 
 # Python

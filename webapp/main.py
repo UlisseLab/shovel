@@ -15,7 +15,7 @@ from starlette.applications import Starlette
 from starlette.config import Config
 from starlette.datastructures import CommaSeparatedStrings
 from starlette.exceptions import HTTPException
-from starlette.responses import FileResponse, JSONResponse
+from starlette.responses import FileResponse, JSONResponse, Response
 from starlette.routing import Mount, Route
 from starlette.staticfiles import StaticFiles
 from starlette.templating import Jinja2Templates
@@ -36,6 +36,17 @@ async def index(request):
         "ctf_config": CTF_CONFIG,
     }
     return templates.TemplateResponse("index.html.jinja2", context)
+
+
+async def api_filedata_get(request):
+    sha256 = request.path_params["sha256"]
+
+    cursor = await filedata_database.execute(
+        "SELECT blob FROM filedata WHERE sha256 = ?",
+        [bytes.fromhex(sha256)],
+    )
+    row = await cursor.fetchone()
+    return Response(row["blob"], headers={"Cache-Control": "max-age=86400"})
 
 
 async def api_flow_list(request):
@@ -239,9 +250,12 @@ async def api_replay_http(request):
                 raise HTTPException(500)
 
             # Load filedata
-            path = f"../suricata/output/filestore/{sha256[:2]}/{sha256}"
-            with open(path, "rb") as f:
-                req["rq_content"] = f.read()
+            cursor = await filedata_database.execute(
+                "SELECT blob FROM filedata WHERE sha256 = ?",
+                [sha256],
+            )
+            row = await cursor.fetchone()
+            req["rq_content"] = row["blob"]
         data.append(req)
 
     context = {"request": request, "data": data, "services": CTF_CONFIG["services"]}
@@ -315,12 +329,14 @@ async def lifespan(app):
     Open databases on startup.
     Close databases on exit.
     """
-    global eve_database, payload_database
+    global eve_database, payload_database, filedata_database
     eve_database = await open_database(EVE_DB_URI)
     payload_database = await open_database(PAYLOAD_DB_URI, bytes)
+    filedata_database = await open_database(FILEDATA_DB_URI, bytes)
     yield
     await eve_database.close()
     await payload_database.close()
+    await filedata_database.close()
 
 
 # Load configuration from environment variables, then .env file
@@ -331,6 +347,9 @@ EVE_DB_URI = config(
 )
 PAYLOAD_DB_URI = config(
     "PAYLOAD_DB_URI", cast=str, default="file:../suricata/output/payload.db?mode=ro"
+)
+FILEDATA_DB_URI = config(
+    "FILEDATA_DB_URI", cast=str, default="file:../suricata/output/filedata.db?mode=ro"
 )
 CTF_CONFIG = {
     "start_date": config("CTF_START_DATE", cast=str, default="1970-01-01T00:00+00:00"),
@@ -345,11 +364,13 @@ for name in service_names:
 # Define web application
 eve_database = None
 payload_database = None
+filedata_database = None
 templates = Jinja2Templates(directory="templates")
 app = Starlette(
     debug=DEBUG,
     routes=[
         Route("/", index),
+        Route("/api/filedata/{sha256:str}", api_filedata_get),
         Route("/api/flow", api_flow_list),
         Route("/api/flow/{flow_id:int}", api_flow_get),
         Route("/api/flow/{flow_id:int}/pcap", api_flow_pcap_get),
@@ -357,10 +378,6 @@ app = Starlette(
         Route("/api/replay-http/{flow_id:int}", api_replay_http),
         Route("/api/replay-raw/{flow_id:int}", api_replay_raw),
         Mount("/static", StaticFiles(directory="static")),
-        Mount(
-            "/filestore",
-            StaticFiles(directory="../suricata/output/filestore", check_dir=False),
-        ),
     ],
     lifespan=lifespan,
 )

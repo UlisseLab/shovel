@@ -335,7 +335,7 @@ class FlowDisplay {
 
         // Add corresponding fileinfo
         flow.fileinfo?.filter(d => d.tx_id === txId).forEach((data, i) => {
-          const fileHref = `filestore/${data.sha256.slice(0, 2)}/${data.sha256}`
+          const fileHref = `api/filedata/${data.sha256}`
           const ext = this.getExtFromMagic(data.magic ?? '')
 
           // Create "Download file" button
