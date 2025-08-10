@@ -38,34 +38,16 @@ fn write_event(transaction: &Transaction, buf: &str) -> Result<usize, rusqlite::
                 (buf, sc_ip_format(src_ip.to_string()), sc_ip_format(dest_ip.to_string())),
             )
         },
-        "alert" => {
-            transaction.execute(
-                "INSERT OR IGNORE INTO alert (flow_id, timestamp, extra_data) \
-                values(?1->>'flow_id', (UNIXEPOCH(SUBSTR(?1->>'timestamp', 1, 19))*1000000 + SUBSTR(?1->>'timestamp', 21, 6)), json_extract(?1, '$.' || ?2))",
-                (buf, event_type),
-            )
-        },
-        "anomaly" => {
-            transaction.execute(
-                "INSERT OR IGNORE INTO anomaly (flow_id, timestamp, extra_data) \
-                values(?1->>'flow_id', (UNIXEPOCH(SUBSTR(?1->>'timestamp', 1, 19))*1000000 + SUBSTR(?1->>'timestamp', 21, 6)), json_extract(?1, '$.' || ?2))",
-                (buf, event_type),
-            )
-        },
-        "fileinfo" => {
-            transaction.execute(
-                "INSERT OR IGNORE INTO fileinfo (flow_id, timestamp, extra_data) \
-                values(?1->>'flow_id', (UNIXEPOCH(SUBSTR(?1->>'timestamp', 1, 19))*1000000 + SUBSTR(?1->>'timestamp', 21, 6)), json_extract(?1, '$.' || ?2))",
-                (buf, event_type),
-            )
-        },
-        _ => {
-            transaction.execute(
-                "INSERT OR IGNORE INTO 'app-event' (flow_id, timestamp, app_proto, extra_data) \
-                values(?1->>'flow_id', (UNIXEPOCH(SUBSTR(?1->>'timestamp', 1, 19))*1000000 + SUBSTR(?1->>'timestamp', 21, 6)), ?2, json_extract(?1, '$.' || ?2))",
-                (buf, event_type),
-            )
-        }
+        "alert" => transaction.execute(
+            "INSERT OR IGNORE INTO alert (flow_id, timestamp, extra_data) \
+            values(?1->>'flow_id', (UNIXEPOCH(SUBSTR(?1->>'timestamp', 1, 19))*1000000 + SUBSTR(?1->>'timestamp', 21, 6)), json_extract(?1, '$.' || ?2))",
+            (buf, event_type),
+        ),
+        _ => transaction.execute(
+            "INSERT OR IGNORE INTO 'other-event' (flow_id, timestamp, event_type, extra_data) \
+            values(?1->>'flow_id', (UNIXEPOCH(SUBSTR(?1->>'timestamp', 1, 19))*1000000 + SUBSTR(?1->>'timestamp', 21, 6)), ?2, json_extract(?1, '$.' || ?2))",
+            (buf, event_type),
+        )
     }
 }
 

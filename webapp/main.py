@@ -144,25 +144,15 @@ async def api_flow_get(request):
     result = {"flow": row_to_dict(flow)}
     app_proto = result["flow"].get("app_proto")
 
-    # Get associated fileinfo
-    # See https://docs.suricata.io/en/suricata-6.0.9/file-extraction/file-extraction.html
-    if app_proto in ["http", "http2", "smtp", "ftp", "nfs", "smb"]:
-        cursor = await eve_database.execute(
-            "SELECT extra_data FROM fileinfo WHERE flow_id = ? ORDER BY id", [flow_id]
-        )
-        rows = await cursor.fetchall()
-        result["fileinfo"] = [row_to_dict(f) for f in rows]
-
-    # Get associated application layer(s) metadata
-    if app_proto and app_proto != "failed":
-        cursor = await eve_database.execute(
-            "SELECT app_proto, extra_data FROM 'app-event' WHERE flow_id = ? ORDER BY id",
-            [flow_id],
-        )
-        for row in await cursor.fetchall():
-            result[row["app_proto"]] = result.get(row["app_proto"], []) + [
-                json.loads(row["extra_data"])
-            ]
+    # Get associated events
+    cursor = await eve_database.execute(
+        "SELECT event_type, extra_data FROM 'other-event' WHERE flow_id = ? ORDER BY id",
+        [flow_id],
+    )
+    for row in await cursor.fetchall():
+        result[row["event_type"]] = result.get(row["event_type"], []) + [
+            json.loads(row["extra_data"])
+        ]
 
     # Get associated alert
     if result["flow"]["alerted"]:
@@ -172,14 +162,6 @@ async def api_flow_get(request):
         )
         rows = await cursor.fetchall()
         result["alert"] = [row_to_dict(f) for f in rows]
-
-    # Get associated anomalies
-    cursor = await eve_database.execute(
-        "SELECT extra_data FROM anomaly WHERE flow_id = ? ORDER BY id",
-        [flow_id],
-    )
-    rows = await cursor.fetchall()
-    result["anomaly"] = [row_to_dict(f) for f in rows]
 
     return JSONResponse(result, headers={"Cache-Control": "max-age=86400"})
 
@@ -233,7 +215,7 @@ async def api_replay_http(request):
 
     # Get HTTP events
     cursor = await eve_database.execute(
-        "SELECT flow_id, extra_data FROM 'app-event' WHERE flow_id = ? AND app_proto = 'http' ORDER BY id",
+        "SELECT flow_id, extra_data FROM 'other-event' WHERE flow_id = ? AND event_type = 'http' ORDER BY id",
         [flow_id],
     )
     rows = await cursor.fetchall()
@@ -246,7 +228,7 @@ async def api_replay_http(request):
         if req["http_method"] in ["POST"]:
             # First result should be the request
             cursor = await eve_database.execute(
-                "SELECT extra_data FROM fileinfo WHERE flow_id = ? AND extra_data->>'tx_id' = ? ORDER BY id",
+                "SELECT extra_data FROM 'other-event' WHERE flow_id = ? AND event_type = 'fileinfo' AND extra_data->>'tx_id' = ? ORDER BY id",
                 [flow_id, tx_id],
             )
             fileinfo_first_event = await cursor.fetchone()

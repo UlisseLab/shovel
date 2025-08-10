@@ -31,27 +31,13 @@ CREATE TABLE IF NOT EXISTS "alert" (
     extra_data TEXT,
     UNIQUE(flow_id, tag)
 );
-CREATE TABLE IF NOT EXISTS "anomaly" (
+CREATE TABLE IF NOT EXISTS "other-event" (
     id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     flow_id INTEGER NOT NULL,
     timestamp INTEGER NOT NULL,
+    event_type TEXT NOT NULL,
     extra_data TEXT,
-    UNIQUE(flow_id, timestamp)
-);
-CREATE TABLE IF NOT EXISTS "fileinfo" (
-    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-    flow_id INTEGER NOT NULL,
-    timestamp INTEGER NOT NULL,
-    extra_data TEXT,
-    UNIQUE(flow_id, timestamp)
-);
-CREATE TABLE IF NOT EXISTS "app-event" (
-    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-    flow_id INTEGER NOT NULL,
-    timestamp INTEGER NOT NULL,
-    app_proto TEXT NOT NULL,
-    extra_data TEXT,
-    UNIQUE(flow_id, app_proto, timestamp)
+    UNIQUE(flow_id, event_type, timestamp)
 );
 CREATE INDEX IF NOT EXISTS "flow_ts_start_idx" ON flow(ts_start);
 CREATE INDEX IF NOT EXISTS "flow_app_proto_idx" ON flow(app_proto);
@@ -59,6 +45,4 @@ CREATE INDEX IF NOT EXISTS "flow_src_ipport_idx" ON flow(src_ipport);
 CREATE INDEX IF NOT EXISTS "flow_dest_ipport_idx" ON flow(dest_ipport);
 CREATE INDEX IF NOT EXISTS "alert_tag_idx" ON alert(tag);
 CREATE INDEX IF NOT EXISTS "alert_flow_id_idx" ON alert(flow_id);
-CREATE INDEX IF NOT EXISTS "anomaly_flow_id_idx" ON anomaly(flow_id);
-CREATE INDEX IF NOT EXISTS "fileinfo_flow_id_idx" ON fileinfo(flow_id);
-CREATE INDEX IF NOT EXISTS "app-event_flow_id_idx" ON "app-event"(flow_id);
+CREATE INDEX IF NOT EXISTS "other-event_flow_id_idx" ON "other-event"(flow_id);
