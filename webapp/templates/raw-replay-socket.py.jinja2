@@ -23,15 +23,11 @@ Service: {{ ns.service_name }}
 """
 
 # Load arguments
-# EXTRA is an array of the flagids for current service and team
 if len(sys.argv) < 2:
     print(f'Usage: {sys.argv[0]} <target> [flag_id]')
     sys.exit(1)
 HOST = sys.argv[1]
-if len(sys.argv) > 2:
-    EXTRA = json.loads(bytes.fromhex(sys.argv[2]).decode())
-else:
-    EXTRA = []
+FLAG_ID = json.loads(sys.argv[2]) if len(sys.argv) > 2 else None
 
 # Timeout is important to prevent stall
 socket.setdefaulttimeout(2)
@@ -44,9 +40,13 @@ s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 {%- endif %}
 s.connect((HOST, {{ data.port }}))
 
+# SNIPPET: Generate uniformly random strings of length `k`
+# rand_choice = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+# value = "".join(random.choices(rand_choice, k=16))
+
 # FIXME: You should identify if a flag_id was used in the following
-# payload. If it is the case, then you should loop using EXTRA.
-#for flag_id in EXTRA:
+# payload. If it is the case, then you should replace it with FLAG_ID.
+
 {%- for payload, server_to_client in data.raw_data %}
 {%- if server_to_client == 0 %}
 
