@@ -251,7 +251,7 @@ async def api_replay_http(request):
             # Load filedata
             cursor = await filedata_database.execute(
                 "SELECT blob FROM filedata WHERE sha256 = ?",
-                [sha256],
+                (bytes.fromhex(sha256),),
             )
             row = await cursor.fetchone()
             req["rq_content"] = row["blob"]
