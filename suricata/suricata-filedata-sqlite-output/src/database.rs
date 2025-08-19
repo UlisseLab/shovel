@@ -16,7 +16,7 @@ fn write_filedata(
 }
 
 pub struct Database {
-    conn: rusqlite::Connection,
+    conn: Option<rusqlite::Connection>,
     rx: std::sync::mpsc::Receiver<Filedata>,
     count: usize,
     count_inserted: usize,
@@ -36,7 +36,7 @@ impl Database {
         conn.execute_batch(include_str!("schema.sql"))
             .expect("Failed to initialize database schema");
         Ok(Self {
-            conn,
+            conn: Some(conn),
             rx,
             count: 0,
             count_inserted: 0,
@@ -44,8 +44,10 @@ impl Database {
     }
 
     fn batch_write_filedata(&mut self) -> Result<(), rusqlite::Error> {
+        // This unwrap will never fails as conn must be initialized before this call
+        let db_conn = self.conn.as_mut().unwrap();
         while let Ok(filedata) = self.rx.recv() {
-            let transaction = self.conn.transaction()?;
+            let transaction = db_conn.transaction()?;
 
             // Insert first filedata
             self.count += 1;
@@ -71,6 +73,7 @@ impl Database {
         if let Err(err) = self.batch_write_filedata() {
             log::error!("Failed to write batch: {err:?}");
         }
+        self.conn.take().unwrap().close().unwrap();
         log::info!(
             "Database thread finished: count={} inserted={}",
             self.count,

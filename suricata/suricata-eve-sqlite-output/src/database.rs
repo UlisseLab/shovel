@@ -52,7 +52,7 @@ fn write_event(transaction: &Transaction, buf: &str) -> Result<usize, rusqlite::
 }
 
 pub struct Database {
-    conn: rusqlite::Connection,
+    conn: Option<rusqlite::Connection>,
     rx: std::sync::mpsc::Receiver<String>,
     count: usize,
     count_inserted: usize,
@@ -72,7 +72,7 @@ impl Database {
         conn.execute_batch(include_str!("schema.sql"))
             .expect("Failed to initialize database schema");
         Ok(Self {
-            conn,
+            conn: Some(conn),
             rx,
             count: 0,
             count_inserted: 0,
@@ -80,8 +80,10 @@ impl Database {
     }
 
     fn batch_write_events(&mut self) -> Result<(), rusqlite::Error> {
+        // This unwrap will never fails as conn must be initialized before this call
+        let db_conn = self.conn.as_mut().unwrap();
         while let Ok(buf) = self.rx.recv() {
-            let transaction = self.conn.transaction()?;
+            let transaction = db_conn.transaction()?;
 
             // Insert first event
             self.count += 1;
@@ -98,6 +100,7 @@ impl Database {
 
             transaction.commit()?;
         }
+        self.conn.take().unwrap().close().map_err(|(_, err)| err)?;
         Ok(())
     }
 
@@ -105,7 +108,7 @@ impl Database {
     pub fn run(&mut self) {
         log::debug!("Database thread started");
         if let Err(err) = self.batch_write_events() {
-            log::error!("Failed to write batch of events: {err:?}");
+            log::error!("Failed to write to database: {err:?}");
         }
         log::info!(
             "Database thread finished: count={} inserted={}",
