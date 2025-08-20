@@ -84,4 +84,18 @@ export default class Api {
     const data = await response.json()
     return data
   }
+
+  /**
+   * Call API to get current backend configuration, protocols, and min/max
+   * timestamps
+   */
+  async getStatus () {
+    const response = await fetch('api/status', {})
+    if (!response.ok) {
+      return null
+    }
+
+    const data = await response.json()
+    return data
+  }
 }

@@ -72,7 +72,7 @@ class FlowList {
           const lastFlowTs = document.getElementById('flow-list').lastElementChild?.dataset.ts_start
           if (lastFlowTs) {
             // User sees loading indicator and flows list is not empty
-            await this.update(lastFlowTs)
+            await this.updateFlowsList(lastFlowTs)
           }
         }
       })
@@ -87,7 +87,7 @@ class FlowList {
         this.selectedFlowId = newFlowId
         window.dispatchEvent(new Event('locationchange'))
       }
-      this.update()
+      this.updateFlowsList()
     })
 
     // On 'locationchange' event, update active flow
@@ -105,7 +105,7 @@ class FlowList {
         }
       })
       window.history.pushState(null, '', url.href)
-      this.update()
+      this.updateFlowsList()
     })
 
     // Don't close filter dropdown on click inside
@@ -124,7 +124,7 @@ class FlowList {
         e.target.value = null
       }
       window.history.pushState(null, '', url.href)
-      this.update()
+      this.updateFlowsList()
     })
 
     // On protocol filter change, update URL then update flows list
@@ -137,7 +137,7 @@ class FlowList {
         url.searchParams.delete('app_proto')
       }
       window.history.pushState(null, '', url.href)
-      this.update()
+      this.updateFlowsList()
     })
 
     // On glob search filter submit, update URL then update flows list
@@ -153,7 +153,7 @@ class FlowList {
         url.searchParams.delete('search')
       }
       window.history.pushState(null, '', url.href)
-      this.update()
+      this.updateFlowsList()
     })
 
     // On CTRL-MAJ-F key, search selection
@@ -209,7 +209,7 @@ class FlowList {
           url.searchParams.append('tag_require', tag)
         }
         window.history.pushState(null, '', url.href)
-        this.update()
+        this.updateFlowsList()
         e.preventDefault()
       }
     })
@@ -219,7 +219,7 @@ class FlowList {
       const url = new URL(document.location)
       url.searchParams.set('to', e.currentTarget.dataset.ts)
       window.history.pushState(null, '', url.href)
-      this.update()
+      this.updateFlowsList()
     })
 
     // Trigger initial flows list update
@@ -227,7 +227,8 @@ class FlowList {
     this.startTs = Math.floor(Date.parse(appData.startDate) / 1000)
     this.tickLength = Number(appData.tickLength)
     this.tags = []
-    this.update()
+    this.updateStatus()
+    this.updateFlowsList()
   }
 
   /**
@@ -282,9 +283,16 @@ class FlowList {
   }
 
   /**
+   * Update services in filters select
+   */
+  updateServiceFilter (services) {
+    // TODO
+  }
+
+  /**
    * Update protocols in filters dropdown
    */
-  async updateProtocolFilter (appProto) {
+  updateProtocolFilter (appProto) {
     const protocolSelect = document.getElementById('filter-protocol')
 
     // Empty select options
@@ -441,10 +449,46 @@ class FlowList {
   }
 
   /**
-   * Update flowlist
+   * Query API status endpoint and update timeline
+   */
+  async updateStatus () {
+    // Fetch API and show toast notification if cannot be reached
+    let apiStatus = null
+    try {
+      apiStatus = await this.apiClient.getStatus()
+    } catch (error) {}
+    setTimeout(this.updateStatus.bind(this), 1000)
+    document.getElementById('toast-offline').classList.toggle('show', apiStatus === null)
+    if (apiStatus === null) {
+      return
+    }
+    const { timestampMin, timestampMax, config, appProto } = apiStatus
+
+    // Update timeline min/max
+    if (this.timestampMin !== timestampMin || this.timestampMax !== timestampMax) {
+      this.timestampMin = timestampMin
+      this.timestampMax = timestampMax
+      // TODO: update a timeline with this.timestampMin, this.timestampMax
+    }
+
+    // Update services choice
+    if (JSON.stringify(this.services) !== JSON.stringify(config.services)) {
+      this.services = config.services
+      this.updateServiceFilter(config.services)
+    }
+
+    // Update application protocols choice
+    if (JSON.stringify(this.appProto) !== JSON.stringify(appProto)) {
+      this.appProto = appProto
+      this.updateProtocolFilter(appProto)
+    }
+  }
+
+  /**
+   * Query API and update flows list
    * If `fillTo` is given, then only append newly fetch flows
    */
-  async update (fillTo) {
+  async updateFlowsList (fillTo) {
     const url = new URL(document.location)
     const fromTs = url.searchParams.get('from')
     const toTs = fillTo ?? url.searchParams.get('to')
@@ -489,7 +533,7 @@ class FlowList {
     }
 
     // Fetch API and update
-    const { flows, appProto, tags } = await this.apiClient.listFlows(
+    const { flows, tags } = await this.apiClient.listFlows(
       fromTs ? Number(fromTs) : null,
       toTs ? Number(toTs) : null,
       services,
@@ -499,7 +543,6 @@ class FlowList {
       filterTagsDeny
     )
     this.tags = tags
-    await this.updateProtocolFilter(appProto)
     this.updateTagFilter(tags, filterTagsRequire, filterTagsDeny)
     await this.fillFlowsList(flows, tags)
     this.updateActiveFlow(!fillTo)

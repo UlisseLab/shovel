@@ -133,11 +133,6 @@ async def api_flow_list(request):
         rows = await cursor.fetchall()
         flows = [row_to_dict(row) for row in rows]
 
-    # Fetch application protocols
-    async with eve_db.execute("SELECT DISTINCT app_proto FROM flow") as cursor:
-        rows = await cursor.fetchall()
-        prs = [r["app_proto"] for r in rows if r["app_proto"] not in [None, "failed"]]
-
     # Fetch tags
     async with eve_db.execute(
         "SELECT tag, color FROM alert GROUP BY tag ORDER BY color"
@@ -145,13 +140,7 @@ async def api_flow_list(request):
         rows = await cursor.fetchall()
         tags = [dict(row) for row in rows]
 
-    return JSONResponse(
-        {
-            "flows": flows,
-            "appProto": prs,
-            "tags": tags,
-        }
-    )
+    return JSONResponse({"flows": flows, "tags": tags})
 
 
 async def api_flow_get(request):
@@ -322,6 +311,28 @@ async def api_replay_raw(request):
     )
 
 
+async def api_status(request):
+    # Get first and last flow timestamp from Eve flow events
+    async with eve_db.execute(
+        "SELECT MIN(ts_start) as min, MAX(ts_start) as max FROM flow", ()
+    ) as cursor:
+        row = await cursor.fetchone()
+        ts_min, ts_max = row["min"], row["max"]
+
+    # Fetch application protocols
+    async with eve_db.execute("SELECT DISTINCT app_proto FROM flow") as cursor:
+        rows = await cursor.fetchall()
+        prs = [r["app_proto"] for r in rows if r["app_proto"] not in [None, "failed"]]
+
+    result = {
+        "timestampMin": ts_min,
+        "timestampMax": ts_max,
+        "config": CTF_CONFIG,
+        "appProto": prs,
+    }
+    return JSONResponse(result, headers={"Cache-Control": "max-age=1"})
+
+
 async def open_database(database_uri: str, text_factory=str) -> aiosqlite.Connection:
     while True:
         try:
@@ -390,6 +401,7 @@ app = Starlette(
         Route("/api/flow/{flow_id:int}/raw", api_flow_raw_get),
         Route("/api/replay-http/{flow_id:int}", api_replay_http),
         Route("/api/replay-raw/{flow_id:int}", api_replay_raw),
+        Route("/api/status", api_status),
         Mount("/static", StaticFiles(directory="static")),
     ],
     lifespan=lifespan,
