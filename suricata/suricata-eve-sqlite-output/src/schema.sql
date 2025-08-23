@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS "flow" (
 );
 CREATE TABLE IF NOT EXISTS "alert" (
     id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-    flow_id INTEGER NOT NULL,
+    flow_id INTEGER,
     tag TEXT GENERATED ALWAYS
         AS (extra_data->>'$.metadata.tag[0]') STORED,
     color TEXT GENERATED ALWAYS
@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS "alert" (
 );
 CREATE TABLE IF NOT EXISTS "other-event" (
     id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-    flow_id INTEGER NOT NULL,
+    flow_id INTEGER,
     timestamp INTEGER NOT NULL,
     event_type TEXT NOT NULL,
     extra_data TEXT,

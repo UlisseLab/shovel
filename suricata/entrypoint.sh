@@ -35,6 +35,7 @@ eval "$SURICATA_CMD" \
     --set outputs.3.pcap-log.limit=33554432 \
     --set outputs.3.pcap-log.compression=lz4 \
     --set outputs.3.pcap-log.dir=pcaps \
+    --set outputs.5.stats.enabled=no \
     --set outputs.9.lua.enabled=yes \
     --set outputs.9.lua.cpath=/usr/lib/lua/5.4/?.so \
     --set outputs.9.lua.scripts.0=suricata/suricata-tcp-payload-sqlite-output.lua \

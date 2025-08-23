@@ -2,17 +2,9 @@
 // Copyright (C) 2025  A. Iooss
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-use regex_lite::Regex;
 use rusqlite::Transaction;
-use std::sync::LazyLock;
 
-static RE_EVENT_TYPE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r#""event_type":"([^"]+)""#).unwrap());
-static RE_SRC_IP: LazyLock<Regex> = LazyLock::new(|| Regex::new(r#""src_ip":"([^"]+)""#).unwrap());
-static RE_DEST_IP: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r#""dest_ip":"([^"]+)""#).unwrap());
-
-fn sc_ip_format(sc_ipaddr: String) -> String {
+fn sc_ip_format(sc_ipaddr: &str) -> String {
     match sc_ipaddr.parse().expect("invalid IP address") {
         std::net::IpAddr::V4(ip) => ip.to_string(),
         std::net::IpAddr::V6(ip) => format!("[{ip}]"),
@@ -21,21 +13,28 @@ fn sc_ip_format(sc_ipaddr: String) -> String {
 
 /// Add one Eve event to the SQL database
 fn write_event(transaction: &Transaction, buf: &str) -> Result<usize, rusqlite::Error> {
-    // Use regex rather than JSON parsing for performance reasons.
-    // Ignore events that don't have event_type field, such as stats.
-    let Some(event_type_caps) = RE_EVENT_TYPE.captures(buf) else {
-        return Ok(0);
-    };
-    let event_type = &event_type_caps[1];
+    // Zero-copy extraction of the event_type
+    let (event_type, _) = match buf.split_once(r#","event_type":""#) {
+        Some((_, p)) => p,
+        None => {
+            buf.split_once(r#", "event_type": ""#)
+                .expect("missing event_type")
+                .1
+        }
+    }
+    .split_once('"')
+    .unwrap();
 
     match event_type {
         "flow" => {
-            let src_ip = &RE_SRC_IP.captures(buf).expect("missing src_ip")[1];
-            let dest_ip = &RE_DEST_IP.captures(buf).expect("missing dest_ip")[1];
+            let (_, src_ip_part) = buf.split_once(r#","src_ip":""#).expect("missing src_ip");
+            let (src_ip, _) = src_ip_part.split_once('"').unwrap();
+            let (_, dest_ip_part) = buf.split_once(r#","dest_ip":""#).expect("missing dest_ip");
+            let (dest_ip, _) = dest_ip_part.split_once('"').unwrap();
             transaction.execute(
                 "INSERT OR IGNORE INTO flow (id, src_ip, src_port, dest_ip, dest_port, proto, app_proto, metadata, extra_data) \
                 values(?1->>'flow_id', ?2, ?1->>'src_port', ?3, ?1->>'dest_port', ?1->>'proto', ?1->>'app_proto', ?1->'metadata', ?1->'flow')",
-                (buf, sc_ip_format(src_ip.to_string()), sc_ip_format(dest_ip.to_string())),
+                (buf, sc_ip_format(src_ip), sc_ip_format(dest_ip)),
             )
         },
         "alert" => transaction.execute(

@@ -55,7 +55,7 @@ extern "C" fn filedata_log(
     _dir: u8,
 ) -> c_int {
     // Handle FFI arguments
-    let context = unsafe { &mut *(thread_data as *mut Context) };
+    let context = unsafe { &mut *thread_data.cast::<Context>() };
     let ff = unsafe { &mut *(ff) };
     let data_slice = unsafe { std::slice::from_raw_parts(data, data_len as usize) };
 
@@ -79,6 +79,7 @@ extern "C" fn filedata_log(
         let filedata = Filedata { blob, sha256 };
         if let Err(_err) = context.tx.send(filedata) {
             log::error!("Failed to send filedata to database thread");
+            return -1;
         }
     }
     0
@@ -109,7 +110,7 @@ extern "C" fn filedata_thread_init(
     }));
 
     unsafe {
-        *thread_data = context_ptr as *mut _;
+        *thread_data = context_ptr.cast();
     }
     0
 }
@@ -118,7 +119,7 @@ extern "C" fn filedata_thread_deinit(
     _thread_vars: *mut *mut c_void,
     thread_data: *mut *mut c_void,
 ) {
-    let context = unsafe { Box::from_raw(thread_data as *mut Context) };
+    let context = unsafe { Box::from_raw(thread_data.cast::<Context>()) };
     log::info!("SQLite output finished: count={}", context.count);
     std::mem::drop(context);
 }
