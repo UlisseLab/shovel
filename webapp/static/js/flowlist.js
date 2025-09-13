@@ -220,6 +220,15 @@ class FlowList {
       }
     })
 
+    document.getElementById('timeline').addEventListener('click', e => {
+      const position = (e.layerY / e.target.clientHeight)
+      const tsTop = Math.floor(this.timestampMax - position * (this.timestampMax - this.timestampMin))
+      const url = new URL(document.location)
+      url.searchParams.set('to', tsTop)
+      window.history.pushState(null, '', url.href)
+      this.updateFlowsList()
+    })
+
     // Apply current flow tick as time filter on click
     document.querySelector('#display-flow-tick > a').addEventListener('click', e => {
       const url = new URL(document.location)
