@@ -257,9 +257,9 @@ class FlowList {
     })
 
     // State updated using API status endpoint
-    this.timestampMin = 0  // first flow in database
-    this.timestampMax = 0  // last flow in database
-    this.timestampStart = 0  // game start
+    this.timestampMin = 0 // first flow in database
+    this.timestampMax = 0 // last flow in database
+    this.timestampStart = 0 // game start
     this.tickLength = 0
     this.services = {}
     this.appProto = []
@@ -335,7 +335,7 @@ class FlowList {
     if (this.timestampMin < this.timestampStart && this.timestampStart < this.timestampMax) {
       const positionGameStart = (this.timestampMax - this.timestampStart) / (this.timestampMax - this.timestampMin)
       document.getElementById('timeline-game-start').classList.toggle('d-none', this.timestampStart === 0)
-      document.getElementById('timeline-game-start').style.height = `3px`
+      document.getElementById('timeline-game-start').style.height = '3px'
       document.getElementById('timeline-game-start').style.top = `${positionGameStart * 100}%`
     }
   }
