@@ -51,5 +51,8 @@ eval "$SURICATA_CMD" \
     --set flow-timeouts.tcp.emergency-established=60 \
     --set flow-timeouts.tcp.closed=5 \
     --set flow-timeouts.tcp.emergency-closed=5 \
+    --set flow-timeouts.udp.new=10 \
+    --set flow-timeouts.udp.established=10 \
+    --set flow-timeouts.udp.emergency-established=10 \
     --set security.lua.allow-rules=yes \
     "$*"
