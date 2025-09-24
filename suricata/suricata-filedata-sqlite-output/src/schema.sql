@@ -2,5 +2,6 @@
 -- SPDX-License-Identifier: GPL-2.0-or-later
 CREATE TABLE IF NOT EXISTS filedata (
     sha256 BLOB PRIMARY KEY,
-    blob BLOB
+    sz INT,
+    data BLOB
 );

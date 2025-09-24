@@ -1,6 +1,8 @@
 // Copyright (C) 2025  A. Iooss
 // SPDX-License-Identifier: GPL-2.0-or-later
 
+use std::io::Write;
+
 use crate::Filedata;
 use rusqlite::Transaction;
 
@@ -9,9 +11,19 @@ fn write_filedata(
     transaction: &Transaction,
     filedata: &Filedata,
 ) -> Result<usize, rusqlite::Error> {
+    let original_size = filedata.blob.len();
+    let data = if original_size < 256 {
+        // Do not compress smaller blobs
+        &filedata.blob
+    } else {
+        // Compress using deflate
+        let mut e = flate2::write::DeflateEncoder::new(Vec::new(), flate2::Compression::fast());
+        e.write_all(&filedata.blob).unwrap();
+        &e.finish().unwrap()
+    };
     transaction.execute(
-        "INSERT OR IGNORE INTO filedata (sha256, blob) values(?, ?)",
-        (&filedata.sha256, &filedata.blob),
+        "INSERT OR IGNORE INTO filedata (sha256, sz, data) values(?, ?, ?)",
+        (&filedata.sha256, original_size, &data),
     )
 }
 

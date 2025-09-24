@@ -42,11 +42,12 @@ async def api_filedata_get(request):
     sha256 = request.path_params["sha256"]
 
     async with filedata_db.execute(
-        "SELECT blob FROM filedata WHERE sha256 = ?", (bytes.fromhex(sha256),)
+        "SELECT sz, data FROM filedata WHERE sha256 = ?", (bytes.fromhex(sha256),)
     ) as cursor:
         row = await cursor.fetchone()
-        blob = row["blob"]
-    return Response(blob, headers={"Cache-Control": "max-age=86400"})
+        data = row["data"]
+    extra_header = {"Content-Encoding": "deflate"} if row["sz"] != len(data) else {}
+    return Response(data, headers={"Cache-Control": "max-age=86400"} | extra_header)
 
 
 async def api_flow_list(request):
@@ -101,9 +102,10 @@ async def api_flow_list(request):
             rows = await cursor.fetchall()
             search_fid = [r["flow_id"] for r in rows]
 
-        # Collect all flows id with filedata matching search
+        # Collect all flows id with uncompressed filedata matching search
         async with filedata_db.execute(
-            "SELECT sha256 FROM filedata WHERE blob GLOB ?1", (f"*{search}*",)
+            "SELECT sha256 FROM filedata WHERE length(data) == sz AND data GLOB ?1",
+            (f"*{search}*",),
         ) as cursor:
             rows = await cursor.fetchall()
             filedata_sha256 = [r["sha256"].hex() for r in rows]
@@ -246,10 +248,12 @@ async def api_replay_http(request):
 
             # Load filedata
             async with filedata_db.execute(
-                "SELECT blob FROM filedata WHERE sha256 = ?", (bytes.fromhex(sha256),)
+                "SELECT sz, data FROM filedata WHERE sha256 = ?",
+                (bytes.fromhex(sha256),),
             ) as cursor:
                 row = await cursor.fetchone()
-                req["rq_content"] = row["blob"]
+                d, sz = row["data"], row["sz"]
+                req["rq_content"] = f"[TODO] {sz} bytes".encode() if sz != len(d) else d
         data.append(req)
 
     context = {"request": request, "data": data, "services": CTF_CONFIG["services"]}
