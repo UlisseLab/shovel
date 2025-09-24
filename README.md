@@ -138,7 +138,7 @@ sudo ./suricata/entrypoint.sh -i tun5
 Suricata creates pcap files in `suricata/output/pcaps/` folder,
 remember to backup this folder for archiving purposes!
 
-### Mode C: Live capture using PCAP-over-IP (fast)
+#### Mode C: Live capture using PCAP-over-IP (fast)
 
 This mode requires to have access to a TCP listener exposing PCAP-over-IP.
 Such server can be easily spawned using:
