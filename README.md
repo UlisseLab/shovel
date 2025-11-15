@@ -19,9 +19,10 @@ Shovel is developed in the context of
 
 You might also want to have a look at these other awesome traffic analyser tools:
 
-- <https://github.com/secgroup/flower> (first commit in 2018)
-- <https://github.com/eciavatta/caronte> (first commit in 2020)
-- <https://github.com/OpenAttackDefenseTools/tulip> (fork from flower in May 2022)
+- [Ca' Foscari University Flower](https://github.com/secgroup/flower) (first commit in 2018)
+- [TeamItaly Caronte](https://github.com/eciavatta/caronte) (first commit in 2020)
+- [TeamEurope Tulip](https://github.com/OpenAttackDefenseTools/tulip) (fork from flower in May 2022)
+- [Pwnzer0tt1 Digger](https://github.com/Pwnzer0tt1/shovel) (Shovel fork with SvelteKit frontend and PostgreSQL)
 
 Compared to these traffic analyser tools, Shovel only relies on Suricata while
 making opinionated choices for the frontend. This has a few nice implications:
