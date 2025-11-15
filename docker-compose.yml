@@ -12,6 +12,8 @@ services:
     # Mode A: pcap replay mode (slower, for archives replay or rootless CTF)
     # Add `--pcap-file-continuous` to watch for new pcap in folder.
     command: -r /input_pcaps
+    environment:
+      - PCAP_LOG=no
 
     # Mode B: capture interface (fast, requires root on vulnbox and in Docker)
     # Drastically reduces ingest delay, but requires to setup traffic mirroring
