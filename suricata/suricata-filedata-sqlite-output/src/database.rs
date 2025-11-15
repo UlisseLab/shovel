@@ -6,11 +6,26 @@ use std::io::Write;
 use crate::Filedata;
 use rusqlite::Transaction;
 
-/// Add one filedata payload to the SQL database
+// SQLar format as specified at https://sqlite.org/sqlar.html
+const SQLAR_SCHEMA: &str = "
+CREATE TABLE IF NOT EXISTS sqlar (
+    name TEXT PRIMARY KEY,
+    mode INT,               -- access permissions
+    mtime INT,              -- last modification time
+    sz INT,                 -- original file size
+    data BLOB               -- compressed content
+);";
+
+/// Add one filedata payload to the SQLar archive
 fn write_filedata(
     transaction: &Transaction,
     filedata: &Filedata,
 ) -> Result<usize, rusqlite::Error> {
+    let name: String = filedata
+        .sha256
+        .iter()
+        .map(|byte| format!("{:02x}", byte))
+        .collect();
     let original_size = filedata.blob.len();
     let data = if original_size < 256 {
         // Do not compress smaller blobs
@@ -22,8 +37,8 @@ fn write_filedata(
         &e.finish().unwrap()
     };
     transaction.execute(
-        "INSERT OR IGNORE INTO filedata (sha256, sz, data) values(?, ?, ?)",
-        (&filedata.sha256, original_size, &data),
+        "INSERT OR IGNORE INTO sqlar (name, mode, mtime, sz, data) values(?, ?, ?, ?, ?)",
+        (name, 0o100644, 0, original_size, &data),
     )
 }
 
@@ -45,7 +60,7 @@ impl Database {
             .expect("Failed to set journal_mode=wal");
         conn.pragma_update(None, "synchronous", "off")
             .expect("Failed to set synchronous=off");
-        conn.execute_batch(include_str!("schema.sql"))
+        conn.execute_batch(SQLAR_SCHEMA)
             .expect("Failed to initialize database schema");
         Ok(Self {
             conn: Some(conn),

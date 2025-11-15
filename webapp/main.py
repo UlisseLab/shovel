@@ -42,7 +42,7 @@ async def api_filedata_get(request):
     sha256 = request.path_params["sha256"]
 
     async with filedata_db.execute(
-        "SELECT sz, data FROM filedata WHERE sha256 = ?", (bytes.fromhex(sha256),)
+        "SELECT sz, data FROM sqlar WHERE name = ?", (sha256,)
     ) as cursor:
         row = await cursor.fetchone()
         data = row["data"]
@@ -104,11 +104,11 @@ async def api_flow_list(request):
 
         # Collect all flows id with uncompressed filedata matching search
         async with filedata_db.execute(
-            "SELECT sha256 FROM filedata WHERE length(data) == sz AND data GLOB ?1",
+            "SELECT name FROM sqlar WHERE length(data) == sz AND data GLOB ?1",
             (f"*{search}*",),
         ) as cursor:
             rows = await cursor.fetchall()
-            filedata_sha256 = [r["sha256"].hex() for r in rows]
+            filedata_sha256 = [r["name"].decode() for r in rows]
         async with eve_db.execute(
             "WITH fsha256 AS (SELECT value FROM json_each(?1)) "
             "SELECT flow_id FROM 'other-event' "
@@ -248,8 +248,8 @@ async def api_replay_http(request):
 
             # Load filedata
             async with filedata_db.execute(
-                "SELECT sz, data FROM filedata WHERE sha256 = ?",
-                (bytes.fromhex(sha256),),
+                "SELECT sz, data FROM sqlar WHERE name = ?",
+                (sha256,),
             ) as cursor:
                 row = await cursor.fetchone()
                 d, sz = row["data"], row["sz"]
@@ -390,7 +390,9 @@ PAYLOAD_DB_URI = config(
     "PAYLOAD_DB_URI", cast=str, default="file:../suricata/output/payload.db?mode=ro"
 )
 FILEDATA_DB_URI = config(
-    "FILEDATA_DB_URI", cast=str, default="file:../suricata/output/filedata.db?mode=ro"
+    "FILEDATA_DB_URI",
+    cast=str,
+    default="file:../suricata/output/filedata.sqlar?mode=ro",
 )
 CTF_CONFIG = {
     "start_date": config("CTF_START_DATE", cast=str, default="1970-01-01T00:00+00:00"),

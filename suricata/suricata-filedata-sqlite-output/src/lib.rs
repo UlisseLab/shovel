@@ -10,7 +10,7 @@ use std::os::raw::{c_int, c_void};
 use std::sync::mpsc;
 
 // Default configuration values.
-const DEFAULT_DATABASE_URI: &str = "file:suricata/output/filedata.db";
+const DEFAULT_DATABASE_URI: &str = "file:suricata/output/filedata.sqlar";
 const DEFAULT_BUFFER_SIZE: &str = "1000";
 
 #[derive(Debug, Clone)]
