@@ -202,10 +202,7 @@
           "queryType": "table",
           "rawQueryText": "WITH config AS (SELECT \n    (1000000 * UNIXEPOCH(\"${CTF_START_DATE}\")) AS ctf_start_ts,\n    (1000000 * ${CTF_TICK_LENGTH}) AS tick_length\n)\nSELECT\n    (ctf_start_ts + cast(((ts_start - ctf_start_ts) / tick_length) as int) * tick_length) / 1000000 AS time,\n    (ts_start - ctf_start_ts) / tick_length as tick,\n    COUNT(*) as flows,\n    (ctf_start_ts + cast((ts_start - ctf_start_ts) / tick_length + 1 as int) * tick_length) as ts_to_url\nFROM flow, config\nWHERE\n    ts_start / 1000 >= $__from and ts_start / 1000 < $__to\nGROUP BY cast(((ts_start - ctf_start_ts) / 1000000 / ${CTF_TICK_LENGTH}) as int) * ${CTF_TICK_LENGTH}\n",
           "refId": "ALL",
-          "timeColumns": [
-            "time",
-            "ts"
-          ]
+          "timeColumns": ["time", "ts"]
         }
       ],
       "title": "Flows per tick",
@@ -412,10 +409,7 @@
           "queryType": "table",
           "rawQueryText": "WITH config AS (SELECT \n    (1000000 * UNIXEPOCH(\"${CTF_START_DATE}\")) AS ctf_start_ts,\n    (1000000 * ${CTF_TICK_LENGTH}) AS tick_length\n)\nSELECT\n    (ctf_start_ts + cast(((ts_start - ctf_start_ts) / tick_length) as int) * tick_length) / 1000000 AS time,\n    (ts_start - ctf_start_ts) / tick_length as tick,\n    COUNT(*) as flag_out,\n    (ctf_start_ts + cast((ts_start - ctf_start_ts) / tick_length + 1 as int) * tick_length) as ts_to_url\nFROM flow, config\nWHERE\n    ts_start / 1000 >= $__from and ts_start / 1000 < $__to\n    AND id IN (SELECT flow_id FROM alert WHERE tag = \"FLAG OUT\")\nGROUP BY cast(((ts_start - ctf_start_ts) / 1000000 / ${CTF_TICK_LENGTH}) as int) * ${CTF_TICK_LENGTH}\n",
           "refId": "FLAG OUT",
-          "timeColumns": [
-            "time",
-            "ts"
-          ]
+          "timeColumns": ["time", "ts"]
         },
         {
           "datasource": {
@@ -426,9 +420,7 @@
           "queryType": "table",
           "rawQueryText": "WITH config AS (SELECT \n    (1000000 * UNIXEPOCH(\"${CTF_START_DATE}\")) AS ctf_start_ts,\n    (1000000 * ${CTF_TICK_LENGTH}) AS tick_length\n)\nSELECT\n    (ctf_start_ts + cast(((ts_start - ctf_start_ts) / tick_length) as int) * tick_length) / 1000000 AS time,\n    COUNT(*) as flag_in\nFROM flow, config\nWHERE\n    ts_start / 1000 >= $__from and ts_start / 1000 < $__to\n    AND id IN (SELECT flow_id FROM alert WHERE tag = \"FLAG IN\")\nGROUP BY cast(((ts_start - ctf_start_ts) / 1000000 / ${CTF_TICK_LENGTH}) as int) * ${CTF_TICK_LENGTH}\n",
           "refId": "FLAG IN",
-          "timeColumns": [
-            "time"
-          ]
+          "timeColumns": ["time"]
         }
       ],
       "title": "FLAG IN/OUT per tick",
@@ -436,12 +428,52 @@
       "type": "timeseries"
     },
     {
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "PA850873C8E526CF4"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 12,
+        "x": 0,
+        "y": 8
+      },
+      "id": 20,
+      "options": {
+        "dedupStrategy": "none",
+        "enableInfiniteScrolling": false,
+        "enableLogDetails": false,
+        "prettifyLogMessage": false,
+        "showCommonLabels": false,
+        "showLabels": false,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": false
+      },
+      "pluginVersion": "12.1.1",
+      "targets": [
+        {
+          "queryText": "WITH config AS (SELECT \n    (1000000 * UNIXEPOCH(\"${CTF_START_DATE}\")) AS ctf_start_ts,\n    (1000000 * ${CTF_TICK_LENGTH}) AS tick_length\n)\nSELECT\n    ts_start / 1000000 AS time,\n    concat('tick=', (ts_start - ctf_start_ts) / tick_length, ' ', metadata->>'$.flowvars[0].match') AS text\nFROM flow, config\nWHERE\n    ts_start / 1000 >= $__from and ts_start / 1000 < $__to\n    AND metadata->>'$.flowvars[0].match' IS NOT NULL\nORDER BY ts_start DESC\nLIMIT 1000",
+          "queryType": "table",
+          "rawQueryText": "WITH config AS (SELECT \n    (1000000 * UNIXEPOCH(\"${CTF_START_DATE}\")) AS ctf_start_ts,\n    (1000000 * ${CTF_TICK_LENGTH}) AS tick_length\n)\nSELECT\n    ts_start / 1000000 AS time,\n    concat('tick=', (ts_start - ctf_start_ts) / tick_length, ' ', metadata->>'$.flowvars[0].match') AS text\nFROM flow, config\nWHERE\n    ts_start / 1000 >= $__from and ts_start / 1000 < $__to\n    AND metadata->>'$.flowvars[0].match' IS NOT NULL\nORDER BY ts_start DESC\nLIMIT 1000",
+          "refId": "A",
+          "timeColumns": ["time", "ts"]
+        }
+      ],
+      "title": "Last flags IN/OUT",
+      "type": "logs"
+    },
+    {
       "collapsed": false,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 8
+        "y": 14
       },
       "id": 13,
       "panels": [],
@@ -583,7 +615,7 @@
         "h": 7,
         "w": 12,
         "x": 0,
-        "y": 9
+        "y": 15
       },
       "id": 18,
       "options": {
@@ -611,10 +643,7 @@
           "queryType": "table",
           "rawQueryText": "WITH config AS (SELECT \n    (1000000 * UNIXEPOCH(\"${CTF_START_DATE}\")) AS ctf_start_ts,\n    (1000000 * ${CTF_TICK_LENGTH}) AS tick_length\n)\nSELECT\n    (ctf_start_ts + cast(((ts_start - ctf_start_ts) / tick_length) as int) * tick_length) / 1000000 AS time,\n    (ts_start - ctf_start_ts) / tick_length as tick,\n    COUNT(*) as flows,\n    (ctf_start_ts + cast((ts_start - ctf_start_ts) / tick_length + 1 as int) * tick_length) as ts_to_url\nFROM flow, config\nWHERE\n    ts_start / 1000 >= $__from and ts_start / 1000 < $__to\n    AND (CONCAT(src_ip, ':', src_port) == \"${CTF_SERVICES:value}\" OR CONCAT(dest_ip, ':', dest_port) == \"${CTF_SERVICES:value}\")\nGROUP BY cast(((ts_start - ctf_start_ts) / 1000000 / ${CTF_TICK_LENGTH}) as int) * ${CTF_TICK_LENGTH}\n",
           "refId": "ALL",
-          "timeColumns": [
-            "time",
-            "ts"
-          ]
+          "timeColumns": ["time", "ts"]
         }
       ],
       "title": "Flows per tick for ${CTF_SERVICES}",
@@ -793,7 +822,7 @@
         "h": 7,
         "w": 12,
         "x": 12,
-        "y": 9
+        "y": 15
       },
       "id": 19,
       "options": {
@@ -821,10 +850,7 @@
           "queryType": "table",
           "rawQueryText": "WITH config AS (SELECT \n    (1000000 * UNIXEPOCH(\"${CTF_START_DATE}\")) AS ctf_start_ts,\n    (1000000 * ${CTF_TICK_LENGTH}) AS tick_length\n)\nSELECT\n    (ctf_start_ts + cast(((ts_start - ctf_start_ts) / tick_length) as int) * tick_length) / 1000000 AS time,\n    (ts_start - ctf_start_ts) / tick_length as tick,\n    COUNT(*) as flag_out,\n    (ctf_start_ts + cast((ts_start - ctf_start_ts) / tick_length + 1 as int) * tick_length) as ts_to_url\nFROM flow, config\nWHERE\n    ts_start / 1000 >= $__from and ts_start / 1000 < $__to\n    AND id IN (SELECT flow_id FROM alert WHERE tag = \"FLAG OUT\")\n    AND (CONCAT(src_ip, ':', src_port) == \"${CTF_SERVICES:value}\" OR CONCAT(dest_ip, ':', dest_port) == \"${CTF_SERVICES:value}\")\nGROUP BY cast(((ts_start - ctf_start_ts) / 1000000 / ${CTF_TICK_LENGTH}) as int) * ${CTF_TICK_LENGTH}\n",
           "refId": "FLAG OUT",
-          "timeColumns": [
-            "time",
-            "ts"
-          ]
+          "timeColumns": ["time", "ts"]
         },
         {
           "datasource": {
@@ -835,9 +861,7 @@
           "queryType": "table",
           "rawQueryText": "WITH config AS (SELECT \n    (1000000 * UNIXEPOCH(\"${CTF_START_DATE}\")) AS ctf_start_ts,\n    (1000000 * ${CTF_TICK_LENGTH}) AS tick_length\n)\nSELECT\n    (ctf_start_ts + cast(((ts_start - ctf_start_ts) / tick_length) as int) * tick_length) / 1000000 AS time,\n    COUNT(*) as flag_in\nFROM flow, config\nWHERE\n    ts_start / 1000 >= $__from and ts_start / 1000 < $__to\n    AND id IN (SELECT flow_id FROM alert WHERE tag = \"FLAG IN\")\n    AND (CONCAT(src_ip, ':', src_port) == \"${CTF_SERVICES:value}\" OR CONCAT(dest_ip, ':', dest_port) == \"${CTF_SERVICES:value}\")\nGROUP BY cast(((ts_start - ctf_start_ts) / 1000000 / ${CTF_TICK_LENGTH}) as int) * ${CTF_TICK_LENGTH}\n",
           "refId": "FLAG IN",
-          "timeColumns": [
-            "time"
-          ]
+          "timeColumns": ["time"]
         }
       ],
       "title": "FLAG IN/OUT per tick for ${CTF_SERVICES}",
