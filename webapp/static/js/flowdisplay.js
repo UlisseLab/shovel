@@ -235,6 +235,29 @@ class FlowDisplay {
     return hexdump
   }
 
+  /**
+   * Create simple one-line card, used for alerts message
+   * @param {HTMLElement} parentEl
+   * @param {String} color - Bootstrap color
+   * @param {String} text - Card content
+   * @param {String} title - Hover content
+   */
+  createSimpleCard (parentEl, color, text, title) {
+    if (!text) {
+      return // do not create empty cards
+    }
+    const cardEl = document.createElement('div')
+    cardEl.classList.add('card', 'm-3', 'bg-body', 'font-monospace', `border-${color}`)
+    const cardHeader = document.createElement('div')
+    cardHeader.classList.add('card-header')
+    cardHeader.textContent = text
+    if (title) {
+      cardHeader.title = title
+    }
+    cardEl.appendChild(cardHeader)
+    parentEl.appendChild(cardEl)
+  }
+
   async update () {
     // Show welcome page when flow is not found or not selected
     const url = new URL(document.location)
@@ -287,32 +310,14 @@ class FlowDisplay {
       document.title = `Shovel - Tick ${tick}`
     }
 
-    // Alert and anomaly cards
+    // Alert, anomaly and engine exceptions cards
     const alertsDiv = document.getElementById('display-alerts')
     while (alertsDiv.lastChild) {
       alertsDiv.removeChild(alertsDiv.lastChild)
     }
-    flow.alert?.forEach(data => {
-      if (data.signature) {
-        const cardEl = document.createElement('div')
-        cardEl.classList.add('card', 'm-3', 'bg-body', 'font-monospace', `border-${data.color}`)
-        const cardHeader = document.createElement('div')
-        cardHeader.classList.add('card-header')
-        cardHeader.textContent = data.signature
-        cardHeader.title = `Suricata alert rule with sid ${data.signature_id}.`
-        cardEl.appendChild(cardHeader)
-        alertsDiv.appendChild(cardEl)
-      }
-    })
-    flow.anomaly?.forEach(data => {
-      const cardEl = document.createElement('div')
-      cardEl.classList.add('card', 'm-3', 'bg-body', 'font-monospace', 'border-warning')
-      const cardHeader = document.createElement('div')
-      cardHeader.classList.add('card-header')
-      cardHeader.textContent = `Dissection anomaly: ${JSON.stringify(data)}`
-      cardEl.appendChild(cardHeader)
-      alertsDiv.appendChild(cardEl)
-    })
+    flow.alert?.forEach(d => this.createSimpleCard(alertsDiv, d.color, d.signature, `Suricata alert rule with sid ${d.signature_id}.`))
+    flow.anomaly?.forEach(d => this.createSimpleCard(alertsDiv, 'warning', `Dissection anomaly: ${JSON.stringify(d)}`))
+    flow.flow.exception_policy?.forEach(d => this.createSimpleCard(alertsDiv, 'warning', `Flow exception: ${JSON.stringify(d)}`))
 
     // Application protocol card
     const appProto = flow.flow.app_proto?.replace('http2', 'http')
