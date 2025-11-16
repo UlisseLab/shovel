@@ -30,8 +30,7 @@ making opinionated choices for the frontend. This has a few nice implications:
 - usage of a battle-tested and efficient network flows reconstruction engine,
 - dissection of all application protocols supported by Suricata (HTTP2, modbus,
   WebSocket, SMB, DNS, etc),
-- flows dissections and payloads are stored inside structured SQL databases for
-  faster queries,
+- flows dissections are stored inside structured SQL databases for fast queries,
 - ingest can be a folder of pcaps, a network interface, or pcap-over-IP,
 - tags are defined using the power of Suricata rules (including regex, libmagic
   matching, HTTP headers and custom Lua scripts).
@@ -47,9 +46,9 @@ device  ┌───────────────────────
 or pcap │ Suricata with:        │   SQL DB    │        │
 ───────>│  Eve SQL plugin       ├────────────>│ Webapp │
         │  Payloads SQL plugins │             │        │
-        └───────────────────────┘             └──▲─────┘
-                                           .env  │
-                                           ──────┘
+        └──────────▲────────────┘             └──▲─────┘
+   suricata.rules  │                       .env  │
+   ────────────────┘                       ──────┘
 ```
 
 ## Getting started
@@ -170,6 +169,15 @@ PCAP_OVER_IP=pcap-broker:4242 ./suricata/entrypoint.sh -r /dev/stdin
 
 > [!WARNING]
 > Please note that stopping Suricata will stop network capture.
+
+## Grafana dashboards
+
+Shovel includes two Grafana dashboards.
+The first one `home.json` displays graphs useful while playing CTF.
+The second one `suricata.json` plots Suricata statistics.
+This helps debugging Suricata-related issues, such as memory exhaustion.
+
+![Suricata Grafana dashboard](./.github/demo-grafana.webp)
 
 ## Frequently Asked Questions
 
