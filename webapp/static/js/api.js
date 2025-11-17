@@ -88,6 +88,8 @@ export default class Api {
   /**
    * Setup server-sent events handler
    *
+   * On successful connection, `configCallback` is the last callback to be triggered.
+   *
    * @param {CallableFunction} offlineCallback Function called to indicate backend status
    * @param {CallableFunction} configCallback Function called on new server config
    * @param {CallableFunction} timestampMinMaxCallback Function called on new timestamps

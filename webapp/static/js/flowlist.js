@@ -21,9 +21,17 @@ class FlowList {
     this.apiClient = new Api()
     const url = new URL(document.location)
     this.selectedFlowId = url.searchParams.get('flow')
+
+    // State updated using API status endpoint
+    this.timestampMin = 0 // first flow in database
+    this.timestampMax = 0 // last flow in database
+    this.timestampStart = 0 // game start
+    this.tickLength = 0
+    this.services = {} // used by pprintService
+    this.tags = [] // used by fillFlowsList
   }
 
-  async init () {
+  init () {
     // Handle left arrow, right arrow and escape keys to navigate flows
     // Handle CTRL-MAJ-F key to search selection
     document.addEventListener('keydown', e => {
@@ -83,7 +91,7 @@ class FlowList {
     })
 
     // On flows list scroll, update timeline indicator
-    document.getElementById('flow-list').parentElement.addEventListener('scroll', e => {
+    document.getElementById('flow-list').parentElement.addEventListener('scroll', _ => {
       this.redrawTimeline()
     })
 
@@ -102,14 +110,14 @@ class FlowList {
     this.observer.observe(document.getElementById('flow-list-loading-indicator'))
 
     // On browser history pop, dispatch 'locationchange' event, then update flows list
-    window.addEventListener('popstate', async () => {
+    window.addEventListener('popstate', _ => {
       const url = new URL(document.location)
       const newFlowId = url.searchParams.get('flow')
       if (this.selectedFlowId !== newFlowId) {
         this.selectedFlowId = newFlowId
         window.dispatchEvent(new Event('locationchange'))
       }
-      await this.updateFlowsList()
+      this.updateFlowsList()
     })
 
     // On 'locationchange' event, update active flow
@@ -117,7 +125,7 @@ class FlowList {
       this.updateActiveFlow(true)
     })
 
-    document.getElementById('scroll-to-top').addEventListener('change', async e => {
+    document.getElementById('scroll-to-top').addEventListener('change', _ => {
       const url = new URL(document.location)
       const state = document.getElementById('scroll-to-top').checked
       if (state) {
@@ -126,10 +134,10 @@ class FlowList {
           url.searchParams.delete('to')
           window.history.pushState(null, '', url.href)
         }
-        await this.updateFlowsList()
+        this.updateFlowsList().then(() => {
+          document.getElementById('scroll-to-top').checked = false
+        })
       }
-      // TODO: add auto-refresh
-      document.getElementById('scroll-to-top').checked = false
     })
 
     // On services filter change, update URL then update flows list
@@ -271,14 +279,7 @@ class FlowList {
       this.updateFlowsList()
     })
 
-    // State updated using API status endpoint
-    this.timestampMin = 0 // first flow in database
-    this.timestampMax = 0 // last flow in database
-    this.timestampStart = 0 // game start
-    this.tickLength = 0
-    this.services = {} // used by pprintService
-    this.tags = [] // used by fillFlowsList
-
+    // Subscribe to HTTP event source, and setup callback to updaters
     this.apiClient.subscribeEvents(
       isOffline => document.getElementById('toast-offline').classList.toggle('show', isOffline),
       this.updateConfig.bind(this),
@@ -289,7 +290,6 @@ class FlowList {
       this.updateAppProto.bind(this),
       this.updateTags.bind(this)
     )
-    await this.updateFlowsList()
   }
 
   /**

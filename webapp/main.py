@@ -305,8 +305,8 @@ async def api_replay_raw(request):
 
 
 async def stream_events():
-    last_ts_minmax, last_prs, last_tags = (-1, -1), [], []
-    yield f"event: config\ndata: {json.dumps(CTF_CONFIG)}\n\n"
+    last_ts_minmax, last_prs, last_tags = (-1, -1), None, None
+    config_sent = False
     try:
         while True:
             # Get first and last flow timestamp, application protocols and tags
@@ -335,7 +335,10 @@ async def stream_events():
                 yield f"event: appProto\ndata: {json.dumps(prs)}\n\n"
             if tags != last_tags:
                 yield f"event: tags\ndata: {json.dumps(tags)}\n\n"
+            if not config_sent:  # Must be last event, trigger flows query
+                yield f"event: config\ndata: {json.dumps(CTF_CONFIG)}\n\n"
             last_ts_minmax, last_prs, last_tags = ts_minmax, prs, tags
+            config_sent = True
             await asyncio.sleep(1)
     except asyncio.CancelledError:
         yield "event: close\n\n"
