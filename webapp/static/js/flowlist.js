@@ -246,6 +246,7 @@ class FlowList {
     })
 
     document.getElementById('timeline').addEventListener('click', e => {
+      if (e.target !== e.currentTarget) return // do not trigger on childs
       const position = (e.layerY / e.target.clientHeight)
       const tsTop = Math.floor(this.timestampMax - position * (this.timestampMax - this.timestampMin))
       if (tsTop) {
