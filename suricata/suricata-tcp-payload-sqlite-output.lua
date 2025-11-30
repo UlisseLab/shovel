@@ -62,7 +62,8 @@ function log (args)
         direction = "1"
     end
     assert(stmt:reset() == sqlite3.OK)
-    assert(stmt:bind_values(flow_id, count, direction, #data, data) == sqlite3.OK)
+    assert(stmt:bind_values(flow_id, count, direction, #data, 0) == sqlite3.OK)
+    assert(stmt:bind_blob(5, data) == sqlite3.OK)
     assert(stmt:step() == sqlite3.DONE)
 end
 
